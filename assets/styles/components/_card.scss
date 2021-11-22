@@ -1,0 +1,7 @@
+.card {
+  &--hover {
+    &:hover {
+      outline: 3px solid map-get($theme-colors, 'danger') !important;
+    }
+  }
+}

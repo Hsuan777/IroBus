@@ -1,0 +1,31 @@
+.icon {
+  object-fit: cover;
+  &--reverseX {
+    transform: scaleX(-1);
+  }
+}
+
+@each $name, $value in $icon-sizes {
+  .icon-#{$name} {
+    width: $value;
+    height: $value;
+  }
+  @include media-breakpoint-up(sm) {
+    .icon-sm-#{$name} {
+      width: $value;
+      height: $value;
+    }
+  }
+  @include media-breakpoint-up(md) {
+    .icon-md-#{$name} {
+      width: $value;
+      height: $value;
+    }
+  }
+  @include media-breakpoint-up(lg) {
+    .icon-lg-#{$name} {
+      width: $value;
+      height: $value;
+    }
+  }
+}
