@@ -34,7 +34,10 @@ $utilities: map-merge(
       property: z-index,
       class: zi,
       responsive: true,
-      values: $zindex-favorite,
+      values: (
+        "n1": -1,
+        9: $zindex-favorite,
+      ),
     ),
     "magic-height": (
       property: height,
@@ -59,6 +62,7 @@ $utilities: map-merge(
       class: vh,
       values: (
         80:  80vh,
+        85:  85vh,
         100: 100vh,
       )
     ),
@@ -72,6 +76,12 @@ $utilities: map-merge(
       map-get($utilities, "width"),
       (
         responsive: true,
+        values: map-merge(
+          map-get(map-get($utilities, "width"), "values"), 
+          (
+            10: 10%,
+          )
+        )
       )
     ),
   )

@@ -1,5 +1,5 @@
 <template>
-  <div class="position-relative position-absolute bottom-0 w-100 magic-height-100 bg-blue">
+  <div class="position-relative position-absolute bottom-0 w-100 magic-height-100 bg-blue zi-n1">
     <img
       src="~/static/bus.png"
       alt=""
