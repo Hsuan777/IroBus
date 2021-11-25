@@ -1,8 +1,8 @@
 <template>
   <div class="container-fuild">
-    <div class="row">
+    <div class="row g-5">
       <div class="col-md-4">
-        <div class="mx-6 p-6 bg-dark rounded">
+        <div class="p-6 ms-5 bg-dark rounded">
           <!-- 搜尋欄位 -->
           <div class="d-flex mb-4">
             <input type="button" value="<" class="btn btn-link text-white d-md-none">
@@ -122,11 +122,16 @@
                   border border-focus border-3
                   ms-auto ms-8
                   rounded-circle
-                  py-1 px-2
+                  py-1
+                  px-2
                   fz-small
                 "
               >20</span>
-              <template v-if="item.PlateNumb">
+              <template
+                v-if="
+                  item.PlateNumb !== undefined && item.PlateNumb !== '-1' && item.EstimateTime < 60
+                "
+              >
                 <img src="~/assets/icon/bus.png" alt="bus" class="ms-auto me-2">
                 <span class="fz-smaller">{{ item.PlateNumb }}</span>
               </template>
@@ -140,13 +145,14 @@
         </ul>
       </div>
       <div class="col-md-4">
-        地圖
+        <div id="mapID" class="vh-85" />
       </div>
     </div>
   </div>
 </template>
 <script>
 import JsSHA from 'jssha';
+import Wicket from 'wicket';
 
 export default {
   data() {
@@ -247,6 +253,8 @@ export default {
       cityRouterStopsData: [],
       estimatedTimeOfArrivalData: [],
       cityRouterFaresData: [],
+      busShapeData: [],
+      nowBusMarks: [],
       stopsData: {
         departureStopNameZh: '',
         destinationStopNameZh: '',
@@ -260,7 +268,18 @@ export default {
       return this.cityRouteData.filter((item) => item.RouteName.Zh_tw.match(this.cacheSearch));
     },
   },
+  mounted() {
+    this.displayMap();
+  },
+  created() {
+    if (process.client) {
+      this.leaflet = require('leaflet');
+      const markerCluster = require('leaflet.markercluster');
+      this.leaflet = { ...this.leaflet, ...markerCluster };
+    }
+  },
   methods: {
+    // 取得公車路線資料
     getCityRouteData(city) {
       this.nowCity = city;
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/Route/City/${city}?$format=JSON`;
@@ -272,6 +291,7 @@ export default {
           this.cityRouteData = res.data;
         });
     },
+    // 取得公車路線停靠站點資料
     getCityRouterStopsData(routeName, departureStopNameZh, destinationStopNameZh) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.nowCity}/${routeName}?$format=JSON`;
       this.$axios
@@ -285,6 +305,7 @@ export default {
           this.getEstimatedTimeOfArrivalData(routeName);
         });
     },
+    // 取得公車站點預估到站時間資料
     getEstimatedTimeOfArrivalData(routeName) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/EstimatedTimeOfArrival/City/${this.nowCity}/${routeName}?$format=JSON`;
       this.$axios
@@ -293,40 +314,79 @@ export default {
         })
         .then((res) => {
           this.estimatedTimeOfArrivalData = res.data;
-          this.getCityRouterFaresData(routeName);
+          // this.getCityRouterFaresData(routeName);
+          this.changeDirection(this.stopsData.nowDirection);
+          this.getBusShapeData(routeName);
         });
     },
-    getCityRouterFaresData(routeName) {
-      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/RouteFare/City/${this.nowCity}/${routeName}?$format=JSON`;
+    // 取得站點票價資料
+    // getCityRouterFaresData(routeName) {
+    //   const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/RouteFare/City/${this.nowCity}/${routeName}?$format=JSON`;
+    //   this.$axios
+    //     .get(apiUrl, {
+    //       headers: this.getAuthorizationHeader(),
+    //     })
+    //     .then((res) => {
+    //       this.cityRouterFaresData = res.data;
+    //       this.changeDirection(this.stopsData.nowDirection);
+    //     });
+    // },
+    // 取得公車路線軌跡資料
+    getBusShapeData(routeName) {
+      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/Shape/City/${this.nowCity}/${routeName}?$format=JSON`;
       this.$axios
         .get(apiUrl, {
           headers: this.getAuthorizationHeader(),
         })
         .then((res) => {
-          this.cityRouterFaresData = res.data;
-          console.log(this.cityRouterFaresData);
-          this.changeDirection(this.stopsData.nowDirection);
+          // 可能有很多不同營運業者，先取一筆圖資資料
+          this.busShapeData = res.data;
+          this.polyLine(res.data[0].Geometry);
+          this.displayStopsMark();
         });
+    },
+    polyLine(geo) {
+      const wicket = new Wicket.Wkt();
+      const geojsonFeature = wicket.read(geo).toJson();
+      const myStyle = {
+        color: '#C0A7C4',
+        weight: 5,
+        opacity: 1,
+      };
+      if (this.myLayer) {
+        this.myMap.removeLayer(this.myLayer);
+      }
+      this.myLayer = this.leaflet
+        .geoJSON(geojsonFeature, {
+          style: myStyle,
+        })
+        .addTo(this.myMap);
+      this.myLayer.addData(geojsonFeature);
+      // zoom the map to the layer
+      this.myMap.fitBounds(this.myLayer.getBounds());
     },
     changeDirection(value) {
       //  [0:'去程',1:'返程',2:'迴圈',255:'未知']
       this.stopsData.nowDirection = value;
       // 篩選方向
-      const tempData = this.cityRouterStopsData.filter((item) => item.Direction === value)[0];
+      // 可能多筆資料，因為有多台公車與不同營運業者
+      // 站點座標可能在不同去程與返程上
+      const tempData = this.cityRouterStopsData.filter(
+        (item) => item.Direction === value && item.Stops[0].StopPosition !== undefined,
+      )[0];
       // 匯入動態資料
       if (tempData) {
         tempData.Stops.forEach((item, index) => {
           this.estimatedTimeOfArrivalData.forEach((arrivalItem, arrivalIndex) => {
             if (arrivalItem.StopUID === item.StopUID) {
               tempData.Stops[index] = {
-                ...tempData[index],
+                ...tempData.Stops[index],
                 ...this.estimatedTimeOfArrivalData[arrivalIndex],
               };
             }
           });
         });
         this.directionData = tempData.Stops;
-        console.log(this.directionData);
       } else {
         this.directionData = [];
       }
@@ -344,7 +404,7 @@ export default {
       if (value) {
         return `${Math.ceil(value / 60)} 分`;
       }
-      return '已離站';
+      return '已過站';
     },
     getAuthorizationHeader() {
       const AppID = '3209d3c409014e8cb42b5e83f861c102';
@@ -356,6 +416,77 @@ export default {
       const HMAC = ShaObj.getHMAC('B64');
       const Authorization = `hmac username="${AppID}", algorithm="hmac-sha1", headers="x-date", signature="${HMAC}"`;
       return { Authorization, 'X-Date': GMTString };
+    },
+    // 加入地圖
+    displayMap() {
+      this.myMap = this.leaflet.map('mapID', {
+        center: [25.0462, 121.5174],
+        zoom: 13,
+      });
+      // 加入圖層
+      this.leaflet
+        .tileLayer(
+          'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
+          {
+            attribution:
+              'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken:
+              'pk.eyJ1IjoidmljMzMzIiwiYSI6ImNrdXRqNHBjbTVwa3Myb21uc3hrajJkeHEifQ.TeelvbEBo9SIQjYpUdv70g',
+          },
+        )
+        .addTo(this.myMap);
+    },
+    displayStopsMark() {
+      if (this.busStopsMark) {
+        this.myMap.removeLayer(this.busStopsMark);
+      }
+      if (this.nowBusMarks[0]) {
+        this.nowBusMarks.forEach((item) => this.myMap.removeLayer(item));
+      }
+      this.busStopsMark = this.leaflet.markerClusterGroup();
+      this.directionData.forEach((item) => {
+        // 加入站點座標
+        this.busStopsMark.addLayer(
+          this.leaflet
+            .marker([item.StopPosition.PositionLat, item.StopPosition.PositionLon], {
+              icon: this.setIcon(20),
+            })
+            .bindPopup(`<p>${item.StopName.Zh_tw}</p>`),
+        );
+        // 加入公車目前位置(站點位置)
+        if (item.PlateNumb !== undefined && item.PlateNumb !== '-1' && item.EstimateTime < 60) {
+          this.nowBusMarks.push(
+            this.leaflet
+              .marker([item.StopPosition.PositionLat, item.StopPosition.PositionLon], {
+                icon: this.setIcon(item.PlateNumb),
+              })
+              .bindPopup(`<p>${item.PlateNumb}</p>`),
+          );
+        }
+      });
+      this.myMap.addLayer(this.busStopsMark);
+      this.nowBusMarks.forEach((item) => item.addTo(this.myMap));
+    },
+    setIcon(value) {
+      let icon = '';
+      if (Number.isInteger(value)) {
+        icon = new this.leaflet.Icon({
+          iconUrl: 'https://imgur.com/djnOfPC.png',
+          iconSize: [34, 47],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        });
+      } else {
+        icon = new this.leaflet.DivIcon({
+          html: '<p class="icon-larger d-flex justify-content-center align-items-center rounded-circle bg-focus text-white shadow fw-bolder">Bus</p>',
+        });
+      }
+      return icon;
     },
   },
 };
