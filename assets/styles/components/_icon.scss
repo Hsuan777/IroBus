@@ -1,7 +1,26 @@
 .icon {
-  object-fit: cover;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  background-repeat: no-repeat;
+  white-space: nowrap;
+  transform: translate3d(-10px, -15px, 0);
   &--reverseX {
     transform: scaleX(-1);
+  }
+  &__bus {
+    width: 44px;
+    height: 44px;
+    box-shadow: 0px 0px 15px #D032D3;
+    background-position: center 25%;
+    font-size: 5px;
+    background-image: url('~/static/bus-white.png');
+  }
+  &__station {
+    width: 34px;
+    height: 34px;
+    background-position: center 10%;
+    background-image: url('~/static/bus-blue.png');
   }
 }
 

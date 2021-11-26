@@ -60,18 +60,22 @@
           </ul>
         </div>
       </div>
-      <div class="col-md-4">
+      <div v-if="nowCity !== '請選擇縣市'" class="col-md-4">
         <div class="d-flex">
           <input
             type="button"
-            :value="`往${stopsData.departureStopNameZh}`"
+            :value="`往${
+              stopsData.departureStopNameZh !== undefined ? stopsData.departureStopNameZh : ''
+            }`"
             class="btn btn-primary text-focus border-0 rounded-0 d-block w-100"
             :class="{ 'border-bottom border-white text-white': stopsData.nowDirection === 1 }"
             @click="changeDirection(1)"
           >
           <input
             type="button"
-            :value="`往${stopsData.destinationStopNameZh}`"
+            :value="`往${
+              stopsData.destinationStopNameZh !== undefined ? stopsData.destinationStopNameZh : ''
+            }`"
             class="btn btn-primary text-focus border-0 rounded-0 d-block w-100"
             :class="{ 'border-bottom border-white text-white': stopsData.nowDirection === 0 }"
             @click="changeDirection(0)"
@@ -107,39 +111,50 @@
                     w-100
                     py-1
                     rounded--top
+                    text-nowrap
                   "
                 >
                   {{ formatEstimateTime(item.EstimateTime) }}
                 </p>
               </div>
-              <p class="fz-larger">
+              <p
+                class="w-50"
+                :class="`${item.StopName.Zh_tw.length > 6 ? 'fz-normal' : 'fz-larger'}`"
+              >
                 {{ item.StopName.Zh_tw }}
               </p>
-              <span
-                class="
-                  line--after
-                  bg-dark
-                  border border-focus border-3
-                  ms-auto ms-8
-                  rounded-circle
-                  py-1
-                  px-2
-                  fz-small
-                "
-              >20</span>
-              <template
+              <div
                 v-if="
                   item.PlateNumb !== undefined && item.PlateNumb !== '-1' && item.EstimateTime < 60
                 "
+                class="ms-auto d-flex align-items-center"
               >
-                <img src="~/assets/icon/bus.png" alt="bus" class="ms-auto me-2">
+                <img src="~/assets/icon/bus.png" alt="bus" class="me-2">
                 <span class="fz-smaller">{{ item.PlateNumb }}</span>
-              </template>
+              </div>
+              <span
+                class="
+                  line--after
+                  border border-focus border-3
+                  ms-auto
+                  rounded-circle
+                  icon-larger
+                  d-flex
+                  justify-content-center
+                  align-items-center
+                  fz-small
+                "
+                :class="`${
+                  item.PlateNumb !== undefined && item.PlateNumb !== '-1' && item.EstimateTime < 60
+                    ? 'bg-focus'
+                    : 'bg-dark'
+                }`"
+              >{{ item.Price }}</span>
             </li>
           </template>
           <li v-else class="text-white">
             <p class="fz-larger">
-              無站點資料
+              請選擇路線或是該路線為單向迴圈。
             </p>
           </li>
         </ul>
@@ -255,6 +270,8 @@ export default {
       cityRouterFaresData: [],
       busShapeData: [],
       nowBusMarks: [],
+      busRealTimeMarks: [],
+      busRealTimeData: [],
       stopsData: {
         departureStopNameZh: '',
         destinationStopNameZh: '',
@@ -314,23 +331,27 @@ export default {
         })
         .then((res) => {
           this.estimatedTimeOfArrivalData = res.data;
-          // this.getCityRouterFaresData(routeName);
-          this.changeDirection(this.stopsData.nowDirection);
+          this.getCityRouterFaresData(routeName);
           this.getBusShapeData(routeName);
+          this.getBusRealTimeData(routeName);
         });
     },
     // 取得站點票價資料
-    // getCityRouterFaresData(routeName) {
-    //   const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/RouteFare/City/${this.nowCity}/${routeName}?$format=JSON`;
-    //   this.$axios
-    //     .get(apiUrl, {
-    //       headers: this.getAuthorizationHeader(),
-    //     })
-    //     .then((res) => {
-    //       this.cityRouterFaresData = res.data;
-    //       this.changeDirection(this.stopsData.nowDirection);
-    //     });
-    // },
+    getCityRouterFaresData(routeName) {
+      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/RouteFare/City/${this.nowCity}/${routeName}?$format=JSON`;
+      this.$axios
+        .get(apiUrl, {
+          headers: this.getAuthorizationHeader(),
+        })
+        .then((res) => {
+          this.cityRouterFaresData = res.data;
+          this.changeDirection(this.stopsData.nowDirection);
+        })
+        .catch(() => {
+          this.cityRouterFaresData = [];
+          this.changeDirection(this.stopsData.nowDirection);
+        });
+    },
     // 取得公車路線軌跡資料
     getBusShapeData(routeName) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/Shape/City/${this.nowCity}/${routeName}?$format=JSON`;
@@ -342,9 +363,21 @@ export default {
           // 可能有很多不同營運業者，先取一筆圖資資料
           this.busShapeData = res.data;
           this.polyLine(res.data[0].Geometry);
-          this.displayStopsMark();
         });
     },
+    // 取得公車定時資料 - 公車 GPS
+    getBusRealTimeData(routeName) {
+      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/RealTimeByFrequency/City/${this.nowCity}/${routeName}?$format=JSON`;
+      this.$axios
+        .get(apiUrl, {
+          headers: this.getAuthorizationHeader(),
+        })
+        .then((res) => {
+          this.busRealTimeData = res.data;
+          this.displayBusRealTimeMark();
+        });
+    },
+    // 繪製路線圖
     polyLine(geo) {
       const wicket = new Wicket.Wkt();
       const geojsonFeature = wicket.read(geo).toJson();
@@ -365,6 +398,7 @@ export default {
       // zoom the map to the layer
       this.myMap.fitBounds(this.myLayer.getBounds());
     },
+    // 變更方向資料
     changeDirection(value) {
       //  [0:'去程',1:'返程',2:'迴圈',255:'未知']
       this.stopsData.nowDirection = value;
@@ -374,7 +408,7 @@ export default {
       const tempData = this.cityRouterStopsData.filter(
         (item) => item.Direction === value && item.Stops[0].StopPosition !== undefined,
       )[0];
-      // 匯入動態資料
+      // 匯入「動態預估時間」與「票價」
       if (tempData) {
         tempData.Stops.forEach((item, index) => {
           this.estimatedTimeOfArrivalData.forEach((arrivalItem, arrivalIndex) => {
@@ -382,6 +416,7 @@ export default {
               tempData.Stops[index] = {
                 ...tempData.Stops[index],
                 ...this.estimatedTimeOfArrivalData[arrivalIndex],
+                Price: this.searchFares(tempData.Stops[0].StopName.Zh_tw, item.StopName.Zh_tw),
               };
             }
           });
@@ -390,13 +425,16 @@ export default {
       } else {
         this.directionData = [];
       }
+      this.displayStopsMark();
+      this.displayBusRealTimeMark();
     },
+    // 判斷預估時間回報狀態
     formatEstimateTime(value) {
       if (value === 0) {
         return '已到站';
       }
       if (value > 0 && value <= 60) {
-        return '即將進站';
+        return '即進站';
       }
       if (value === -1) {
         return '未行駛';
@@ -417,7 +455,7 @@ export default {
       const Authorization = `hmac username="${AppID}", algorithm="hmac-sha1", headers="x-date", signature="${HMAC}"`;
       return { Authorization, 'X-Date': GMTString };
     },
-    // 加入地圖
+    // 顯示基底地圖
     displayMap() {
       this.myMap = this.leaflet.map('mapID', {
         center: [25.0462, 121.5174],
@@ -440,6 +478,7 @@ export default {
         )
         .addTo(this.myMap);
     },
+    // 顯示路線上各站點
     displayStopsMark() {
       if (this.busStopsMark) {
         this.myMap.removeLayer(this.busStopsMark);
@@ -453,40 +492,70 @@ export default {
         this.busStopsMark.addLayer(
           this.leaflet
             .marker([item.StopPosition.PositionLat, item.StopPosition.PositionLon], {
-              icon: this.setIcon(20),
+              icon: this.setIcon(item.Price),
             })
             .bindPopup(`<p>${item.StopName.Zh_tw}</p>`),
         );
-        // 加入公車目前位置(站點位置)
-        if (item.PlateNumb !== undefined && item.PlateNumb !== '-1' && item.EstimateTime < 60) {
-          this.nowBusMarks.push(
-            this.leaflet
-              .marker([item.StopPosition.PositionLat, item.StopPosition.PositionLon], {
-                icon: this.setIcon(item.PlateNumb),
-              })
-              .bindPopup(`<p>${item.PlateNumb}</p>`),
-          );
-        }
       });
       this.myMap.addLayer(this.busStopsMark);
       this.nowBusMarks.forEach((item) => item.addTo(this.myMap));
     },
+    // 顯示目前公車 GPS 位置
+    displayBusRealTimeMark() {
+      if (this.busRealTimeMarks[0]) {
+        this.busRealTimeMarks.forEach((item) => this.myMap.removeLayer(item));
+      }
+      this.busRealTimeData.forEach((item) => {
+        if (item.Direction === this.stopsData.nowDirection) {
+          this.busRealTimeMarks.push(
+            this.leaflet
+              .marker([item.BusPosition.PositionLat, item.BusPosition.PositionLon], {
+                icon: this.setIcon(item.PlateNumb),
+              })
+              .bindPopup(
+                `<p>車牌號碼: ${item.PlateNumb}</p>
+              <p>目的地: ${
+  item.Direction === 1
+    ? this.stopsData.departureStopNameZh
+    : this.stopsData.destinationStopNameZh
+}</p>`,
+              )
+              .addTo(this.myMap),
+          );
+        }
+      });
+    },
     setIcon(value) {
       let icon = '';
-      if (Number.isInteger(value)) {
-        icon = new this.leaflet.Icon({
-          iconUrl: 'https://imgur.com/djnOfPC.png',
-          iconSize: [34, 47],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41],
+      if (Number.isInteger(value) || value === '?') {
+        icon = new this.leaflet.DivIcon({
+          html: `<p class="icon icon__station line__station--after rounded-circle bg-white fw-bolder border border-dark border-3 fz-smaller">
+          ${value}
+          </p>`,
         });
       } else {
         icon = new this.leaflet.DivIcon({
-          html: '<p class="icon-larger d-flex justify-content-center align-items-center rounded-circle bg-focus text-white shadow fw-bolder">Bus</p>',
+          html: `<p class="icon icon__bus rounded-circle bg-third text-dark fw-bolder">${value}</p>`,
         });
       }
       return icon;
+    },
+    // 對比起始站與終點站之票價
+    searchFares(startStation, endStation) {
+      // 票價放在 ODFares 內，資料為站點之排列組合
+      // 只需要取得「起始站」與「目的地停靠站」，就有各站價格
+      // RouteFare 資料可能只有一筆，相反路線則反向排序
+      // 部分城市可能有不同的規則
+      if (startStation === endStation) {
+        return 0;
+      }
+      if (this.cityRouterFaresData[0]) {
+        return this.cityRouterFaresData[0].ODFares.filter(
+          (item) => item.OriginStop.StopName === startStation
+            && item.DestinationStop.StopName === endStation,
+        )[0].Fares[0].Price;
+      }
+      return '?';
     },
   },
 };

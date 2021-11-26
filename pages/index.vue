@@ -18,13 +18,20 @@
           "
         >
           <li>
-            <button
+            <NuxtLink
+              class="btn btn-focus d-flex align-items-center rounded-pill px-5 text-white"
+              to="/cityBus"
+            >
+              <img src="~/assets/icon/bus.png" alt="bus" class="me-4">
+              市區公車
+            </NuxtLink>
+            <!-- <button
               type="button"
               class="btn btn-focus d-flex align-items-center rounded-pill px-5 text-white"
             >
               <img src="~/assets/icon/bus.png" alt="bus" class="me-4">
               市區公車
-            </button>
+            </button> -->
           </li>
           <li class="mx-lg-4 my-4 my-lg-0">
             <button

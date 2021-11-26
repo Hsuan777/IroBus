@@ -13,6 +13,21 @@
       transform: rotate(0deg);
     }
   }
+  &__station {
+    &--after {
+      position: relative;
+      &::after {
+        position: absolute;
+        content: '';
+        width: 3px;
+        height: 15px;
+        background-color: map-get($theme-colors, "dark");
+        top: 102%;
+        left: 47%;
+        transform: rotate(0deg);
+      }
+    }
+  }
 }
 
 ul {
