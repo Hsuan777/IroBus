@@ -1,0 +1,16 @@
+.marker-cluster {
+  &-small {
+    background-color:  rgba(102, 86, 130, 0.5);
+    div {
+      background-color: rgba(102, 86, 130, 0.9);
+      color: white;
+    }
+  }
+  &-medium {
+    background-color:  rgba(68, 59, 104, 0.5);
+    div {
+      background-color: rgba(68, 59, 104, 0.9);
+      color: white;
+    }
+  }
+}

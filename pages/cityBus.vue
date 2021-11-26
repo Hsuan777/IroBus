@@ -1,8 +1,8 @@
 <template>
-  <div class="container-fuild">
+  <div class="container-fuild mx-5">
     <div class="row g-5">
       <div class="col-md-4">
-        <div class="p-6 ms-5 bg-dark rounded">
+        <div class="p-6 bg-dark rounded">
           <!-- 搜尋欄位 -->
           <div class="d-flex mb-4">
             <input type="button" value="<" class="btn btn-link text-white d-md-none">
@@ -26,7 +26,7 @@
           </div>
           <!-- 路線列表 -->
           <ul
-            class="scrollbar list-unstyled bg-primary rounded-3 p-3 magic-height-388 overflow-auto"
+            class="scrollbar list-unstyled bg-primary rounded-3 p-3 vh-71 overflow-auto"
           >
             <template v-if="cityRouteData[0]">
               <li
@@ -81,7 +81,7 @@
             @click="changeDirection(0)"
           >
         </div>
-        <ul class="scrollbar list-unstyled py-4 px-6 overflow-auto bg-dark vh-85">
+        <ul class="scrollbar list-unstyled py-4 px-6 overflow-auto bg-dark vh-80">
           <template v-if="directionData[0]">
             <li
               v-for="item in directionData"
@@ -535,7 +535,7 @@ export default {
         });
       } else {
         icon = new this.leaflet.DivIcon({
-          html: `<p class="icon icon__bus rounded-circle bg-third text-dark fw-bolder">${value}</p>`,
+          html: `<p class="icon icon__bus rounded-circle bg-third text-white fw-bolder">${value}</p>`,
         });
       }
       return icon;
