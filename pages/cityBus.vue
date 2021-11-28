@@ -1,11 +1,11 @@
 <template>
-  <div class="container-fuild mx-5">
+  <div class="container-fuild mx-md-5">
     <div class="row g-5">
-      <div class="col-md-4">
+      <!-- 選擇路線 -->
+      <div class="col-lg-4">
         <div class="p-6 bg-dark rounded">
           <!-- 搜尋欄位 -->
           <div class="d-flex mb-4">
-            <input type="button" value="<" class="btn btn-link text-white d-md-none">
             <select
               class="form-select bg-dark border-focus border-2 text-white rounded-pill me-5"
               @change="getCityRouteData($event.target.value)"
@@ -26,7 +26,7 @@
           </div>
           <!-- 路線列表 -->
           <ul
-            class="scrollbar list-unstyled bg-primary rounded-3 p-3 vh-71 overflow-auto"
+            class="scrollbar list-unstyled bg-primary rounded-3 p-3 vh-100 vh-lg-71 overflow-auto"
           >
             <template v-if="cityRouteData[0]">
               <li
@@ -60,7 +60,8 @@
           </ul>
         </div>
       </div>
-      <div v-if="nowCity !== '請選擇縣市'" class="col-md-4">
+      <!-- 顯示站點 -->
+      <div v-if="nowCity !== '請選擇縣市'" class="col-lg-4 d-none d-lg-block">
         <div class="d-flex">
           <input
             type="button"
@@ -81,7 +82,7 @@
             @click="changeDirection(0)"
           >
         </div>
-        <ul class="scrollbar list-unstyled py-4 px-6 overflow-auto bg-dark vh-80">
+        <ul class="scrollbar list-unstyled py-4 px-6 overflow-auto bg-dark vh-md-80">
           <template v-if="directionData[0]">
             <li
               v-for="item in directionData"
@@ -159,8 +160,175 @@
           </li>
         </ul>
       </div>
-      <div class="col-md-4">
-        <div id="mapID" class="vh-85" />
+      <!-- 顯示地圖與對應資訊 -->
+      <div class="col-lg-4 d-none d-lg-block">
+        <div id="pcMap" class="vh-lg-85" />
+      </div>
+    </div>
+
+    <!-- stopsModal -->
+    <div
+      ref="stopsModal"
+      class="modal fade"
+      tabindex="-1"
+      aria-labelledby="stopsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+          <div class="modal-header bg-primary">
+            <p class="modal-title fz-larger text-white">
+              {{ stopsData.busRouteName }}
+            </p>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+          </div>
+          <div class="modal-body p-0">
+            <!-- 顯示站點 -->
+            <div v-if="nowCity !== '請選擇縣市'" class="col-lg-4 vh-85">
+              <div class="d-flex sticky-top">
+                <input
+                  type="button"
+                  :value="`往${
+                    stopsData.departureStopNameZh !== undefined ? stopsData.departureStopNameZh : ''
+                  }`"
+                  class="btn btn-primary text-focus border-0 rounded-0 d-block w-100"
+                  :class="{ 'border-bottom border-white text-white': stopsData.nowDirection === 1 }"
+                  @click="changeDirection(1)"
+                >
+                <input
+                  type="button"
+                  :value="`往${
+                    stopsData.destinationStopNameZh !== undefined
+                      ? stopsData.destinationStopNameZh
+                      : ''
+                  }`"
+                  class="btn btn-primary text-focus border-0 rounded-0 d-block w-100"
+                  :class="{ 'border-bottom border-white text-white': stopsData.nowDirection === 0 }"
+                  @click="changeDirection(0)"
+                >
+              </div>
+              <ul class="scrollbar list-unstyled py-4 px-6 overflow-auto bg-dark">
+                <template v-if="directionData[0]">
+                  <li
+                    v-for="item in directionData"
+                    :key="item.StopUID"
+                    class="d-flex align-items-center text-white mb-4"
+                  >
+                    <div class="position-relative w-10 me-4 magic-height-54">
+                      <img
+                        src="~/static/gery.png"
+                        alt="geryImg"
+                        class="position-absolute top-0 start-0"
+                      >
+                      <img
+                        src="~/static/Rectangle-1.png"
+                        alt="Rectangle-1"
+                        class="position-absolute top-70 start-50 translate-middle magic-height-12"
+                      >
+                      <p
+                        class="
+                          position-absolute
+                          top-20
+                          start-50
+                          translate-middle
+                          fz-smaller
+                          text-center
+                          bg-primary
+                          w-100
+                          py-1
+                          rounded--top
+                          text-nowrap
+                        "
+                      >
+                        {{ formatEstimateTime(item.EstimateTime) }}
+                      </p>
+                    </div>
+                    <p
+                      class="w-50"
+                      :class="`${item.StopName.Zh_tw.length > 6 ? 'fz-normal' : 'fz-larger'}`"
+                    >
+                      {{ item.StopName.Zh_tw }}
+                    </p>
+                    <div
+                      v-if="
+                        item.PlateNumb !== undefined &&
+                          item.PlateNumb !== '-1' &&
+                          item.EstimateTime < 60
+                      "
+                      class="ms-auto d-flex align-items-center"
+                    >
+                      <img src="~/assets/icon/bus.png" alt="bus" class="me-2">
+                      <span class="fz-smaller">{{ item.PlateNumb }}</span>
+                    </div>
+                    <span
+                      class="
+                        line--after
+                        border border-focus border-3
+                        ms-auto
+                        rounded-circle
+                        icon-larger
+                        d-flex
+                        justify-content-center
+                        align-items-center
+                        fz-small
+                      "
+                      :class="`${
+                        item.PlateNumb !== undefined &&
+                        item.PlateNumb !== '-1' &&
+                        item.EstimateTime < 60
+                          ? 'bg-focus'
+                          : 'bg-dark'
+                      }`"
+                    >{{ item.Price }}</span>
+                  </li>
+                </template>
+                <li v-else class="text-white">
+                  <p class="fz-larger vh-100">
+                    請選擇路線或是該路線為單向迴圈。
+                  </p>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer bg-dark">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+              Close
+            </button>
+            <button type="button" class="btn btn-primary" @click="changeModal">
+              顯示地圖
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- mapModal -->
+    <div
+      ref="mapModal"
+      class="modal fade"
+      tabindex="-1"
+      aria-labelledby="mapModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+          <div class="modal-header bg-primary">
+            <p class="modal-title fz-larger text-white">
+              {{ stopsData.busRouteName }}
+            </p>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+          </div>
+          <div class="modal-body p-0">
+            <div id="mobileMap" ref="mapID" class="vh-85" />
+          </div>
+          <div class="modal-footer bg-dark">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+              Close
+            </button>
+            <button type="button" class="btn btn-primary" @click="changeModal">
+              顯示站點
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -272,11 +440,7 @@ export default {
       nowBusMarks: [],
       busRealTimeMarks: [],
       busRealTimeData: [],
-      stopsData: {
-        departureStopNameZh: '',
-        destinationStopNameZh: '',
-        nowDirection: 1,
-      },
+      stopsData: {},
       directionData: [],
     };
   },
@@ -287,16 +451,25 @@ export default {
   },
   mounted() {
     this.displayMap();
+    const Modal = this.modal;
+    this.stopsModal = new Modal(this.$refs.stopsModal);
+    this.mapModal = new Modal(this.$refs.mapModal);
+    this.$refs.mapModal.addEventListener('shown.bs.modal', () => {
+      setTimeout(() => {
+        this.myMap.invalidateSize();
+      }, 1);
+    });
   },
   created() {
     if (process.client) {
       this.leaflet = require('leaflet');
+      this.modal = require('bootstrap/js/dist/modal');
       const markerCluster = require('leaflet.markercluster');
       this.leaflet = { ...this.leaflet, ...markerCluster };
     }
   },
   methods: {
-    // 取得公車路線資料
+    // 選擇縣市後，取得公車路線資料
     getCityRouteData(city) {
       this.nowCity = city;
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/Route/City/${city}?$format=JSON`;
@@ -308,8 +481,8 @@ export default {
           this.cityRouteData = res.data;
         });
     },
-    // 取得公車路線停靠站點資料
-    getCityRouterStopsData(routeName, departureStopNameZh, destinationStopNameZh) {
+    // 取得公車路線停靠站點資料，為「主要」啟動後續動作
+    getCityRouterStopsData(routeName, departureStopName, destinationStopName) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.nowCity}/${routeName}?$format=JSON`;
       this.$axios
         .get(apiUrl, {
@@ -317,8 +490,12 @@ export default {
         })
         .then((res) => {
           this.cityRouterStopsData = res.data;
-          this.stopsData.departureStopNameZh = departureStopNameZh;
-          this.stopsData.destinationStopNameZh = destinationStopNameZh;
+          this.stopsData = {
+            busRouteName: routeName,
+            departureStopNameZh: departureStopName,
+            destinationStopNameZh: destinationStopName,
+            nowDirection: 1,
+          };
           this.getEstimatedTimeOfArrivalData(routeName);
         });
     },
@@ -360,9 +537,7 @@ export default {
           headers: this.getAuthorizationHeader(),
         })
         .then((res) => {
-          // 可能有很多不同營運業者，先取一筆圖資資料
           this.busShapeData = res.data;
-          this.polyLine(res.data[0].Geometry);
         });
     },
     // 取得公車定時資料 - 公車 GPS
@@ -374,7 +549,6 @@ export default {
         })
         .then((res) => {
           this.busRealTimeData = res.data;
-          this.displayBusRealTimeMark();
         });
     },
     // 繪製路線圖
@@ -396,7 +570,17 @@ export default {
         .addTo(this.myMap);
       this.myLayer.addData(geojsonFeature);
       // zoom the map to the layer
-      this.myMap.fitBounds(this.myLayer.getBounds());
+      // 開啟 modal 會遇到找不到地圖路徑問題
+      if (window.screen.width < 992) {
+        setTimeout(() => {
+          this.myMap.invalidateSize();
+        }, 200);
+        setTimeout(() => {
+          this.myMap.fitBounds(this.myLayer.getBounds());
+        }, 500);
+      } else {
+        this.myMap.fitBounds(this.myLayer.getBounds());
+      }
     },
     // 變更方向資料
     changeDirection(value) {
@@ -425,6 +609,19 @@ export default {
       } else {
         this.directionData = [];
       }
+      if (window.screen.width < 992) {
+        this.stopsModal.show();
+      } else {
+        this.polyLine(this.busShapeData[0].Geometry);
+        this.displayStopsMark();
+        this.displayBusRealTimeMark();
+      }
+    },
+    changeModal() {
+      this.stopsModal.toggle();
+      this.mapModal.toggle();
+      // 可能有很多不同營運業者，先取一筆圖資資料
+      this.polyLine(this.busShapeData[0].Geometry);
       this.displayStopsMark();
       this.displayBusRealTimeMark();
     },
@@ -457,7 +654,11 @@ export default {
     },
     // 顯示基底地圖
     displayMap() {
-      this.myMap = this.leaflet.map('mapID', {
+      let map = 'pcMap';
+      if (window.screen.width < 992) {
+        map = 'mobileMap';
+      }
+      this.myMap = this.leaflet.map(map, {
         center: [25.0462, 121.5174],
         zoom: 13,
       });
