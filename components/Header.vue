@@ -1,6 +1,6 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-dark">
-    <div v-if="$route.name !== 'index'" class="container-fluid">
+    <div v-show="$route.name !== 'index'" class="container-fluid" @click="hideCollapseNavbar">
       <NuxtLink class="navbar-brand" to="/">
         <img src="~/static/logo-2.png" alt="Logo">
       </NuxtLink>
@@ -10,24 +10,24 @@
         aria-controls="navbarNav"
         aria-expanded="false"
         aria-label="Toggle navigation"
-        @click="openCollapseNavbar"
+        @click="toggleCollapseNavbar"
       >
         <span class="navbar-toggler-icon" />
       </button>
       <div id="navbarNav" ref="navbarNav" class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <NuxtLink class="nav-link" to="/cityBus">
+            <NuxtLink class="nav-link" to="/cityBus" @click="hideCollapseNavbar">
               市區公車
             </NuxtLink>
           </li>
-          <li class="nav-item">
-            <NuxtLink class="nav-link" to="/">
+          <li class="nav-item ">
+            <NuxtLink class="nav-link text-dark" to="/">
               公路客運
             </NuxtLink>
           </li>
           <li class="nav-item">
-            <NuxtLink class="nav-link" to="/">
+            <NuxtLink class="nav-link text-dark" to="/">
               乘車規劃
             </NuxtLink>
           </li>
@@ -45,15 +45,16 @@ export default {
   },
   mounted() {
     const Collapse = this.collapse;
-    if (this.$route.name !== 'index') {
-      this.bootstrapmModal = new Collapse(this.$refs.navbarNav, {
-        toggle: false,
-      });
-    }
+    this.collapseNavbar = new Collapse(this.$refs.navbarNav, {
+      toggle: false,
+    });
   },
   methods: {
-    openCollapseNavbar() {
-      this.bootstrapmModal.toggle();
+    toggleCollapseNavbar() {
+      this.collapseNavbar.toggle();
+    },
+    hideCollapseNavbar() {
+      this.collapseNavbar.hide();
     },
   },
 };
