@@ -443,6 +443,7 @@ export default {
       busRealTimeData: [],
       stopsData: {},
       directionData: [],
+      timing: 10,
     };
   },
   computed: {
@@ -512,7 +513,6 @@ export default {
           this.getCityRouterFaresData(routeName);
           this.getBusShapeData(routeName);
           this.getBusRealTimeData(routeName);
-          this.getBusScheduleData(routeName);
         });
     },
     // 取得站點票價資料
@@ -551,17 +551,6 @@ export default {
         })
         .then((res) => {
           this.busRealTimeData = res.data;
-        });
-    },
-    // 取得公車時刻表資料
-    getBusScheduleData(routeName) {
-      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bus/Schedule/City/${this.nowCity}/${routeName}?$format=JSON`;
-      this.$axios
-        .get(apiUrl, {
-          headers: this.getAuthorizationHeader(),
-        })
-        .then((res) => {
-          this.busScheduleData = res.data;
         });
     },
     // 繪製路線圖

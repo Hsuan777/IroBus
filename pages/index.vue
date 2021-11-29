@@ -26,7 +26,7 @@
               市區公車
             </NuxtLink>
           </li>
-          <li class="mx-lg-4 my-4 my-lg-0">
+          <!-- <li class="mx-lg-4 my-4 my-lg-0">
             <button
               type="button"
               class="btn btn-focus d-flex align-items-center rounded-pill px-5 text-dark"
@@ -43,7 +43,7 @@
               <img src="~/assets/icon/bus.png" alt="bus" class="me-4">
               乘車規劃
             </button>
-          </li>
+          </li> -->
         </ul>
       </div>
     </div>

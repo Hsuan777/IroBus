@@ -21,7 +21,7 @@
               市區公車
             </NuxtLink>
           </li>
-          <li class="nav-item ">
+          <!-- <li class="nav-item ">
             <NuxtLink class="nav-link text-dark" to="/">
               公路客運
             </NuxtLink>
@@ -30,7 +30,7 @@
             <NuxtLink class="nav-link text-dark" to="/">
               乘車規劃
             </NuxtLink>
-          </li>
+          </li> -->
         </ul>
       </div>
     </div>
